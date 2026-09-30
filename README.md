@@ -1,19 +1,18 @@
 # albituzka
-Reverzní inženýrství Albi Kouzelného čtení.
+Reverse engineering of the Albi Kouzelné čtení ("Magic Reading") pen.
 
-V adresáři docs je popis formátu BNL a obsahu firmware.
+The docs directory contains a description of the BNL format and of the firmware contents.
 
-V adresáři tools pak nástroje k rozebrání a složení BNL souboru, generátor OID kódů a další nástroje.
+The tools directory contains tools for disassembling and assembling BNL files, an OID code generator and other tools.
 
-V adresáři test je ukázkový soubor pro vlastní knihu spolu s podklady
+The test directory contains a sample file for a custom book together with its source materials.
 
-English:
 Reverse engineering of BNL files used for Albi electronic pen. Works also for files found on SpeakItBooks.com. To check if this description is valid for your BNL files, XOR first two 32bit DWORDs, you should get 0x200 in little endian.
 
 
 Disclaimer:
-Toto je _neoficiální_ a _nekomerční_ projekt, který _nijak_ nesouvisí se společností Albi.
+This is an _unofficial_ and _non-commercial_ project which is _in no way_ affiliated with the Albi company.
 
-Společnost Albi není autorem tohoto obsahu, nepodílí se na jeho vývoji, nepodporuje jej a nenese za něj žádnou odpovědnost. Všechny názvy produktů, ochranné známky a loga patří jejich příslušným vlastníkům a jsou použity pouze pro identifikační účely.
+The Albi company is not the author of this content, does not participate in its development, does not endorse it and bears no responsibility for it. All product names, trademarks and logos belong to their respective owners and are used for identification purposes only.
 
-Cílem tohoto projektu je technická analýza a dokumentace s edukativním účelem. Veškeré poznatky jsou výsledkem nezávislého zkoumání zakoupeného zařízení a nejsou nijak spojeny s výrobcem či distributorem.
+The aim of this project is technical analysis and documentation for educational purposes. All findings are the result of independent research of a purchased device and are in no way connected with the manufacturer or distributor.

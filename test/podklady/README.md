@@ -1,8 +1,8 @@
-# Podklady pro vytvoření BNL
-bnl.yaml je vstupní soubor pro bnl_creator.pl
+# Source materials for creating the BNL
+bnl.yaml is the input file for bnl_creator.pl
 
-texty_k_namluveni.zip jsou soubory, které jsou vstupem pro MS Speech Engine
+texty_k_namluveni.zip contains the files that are the input for the MS Speech Engine
 
-mp3.zip jsou namluvené, nakrájené a pojmenované mp3, které jsou vstupem spolu s bnl.yaml
+mp3.zip contains the voiced, cut and named mp3 files, which are the input together with bnl.yaml
 
-psd.zip je PSD soubor se seskládanou grafikou, který se dá upravit v GIMPu, Photoshopu apod.
+psd.zip is a PSD file with the assembled graphics, which can be edited in GIMP, Photoshop etc.

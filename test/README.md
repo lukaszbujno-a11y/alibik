@@ -1,4 +1,4 @@
-# O kohoutkovi a slepičce
-V adresáři final je hotová knížka.
+# About the Rooster and the Hen (O kohoutkovi a slepičce)
+The final directory contains the finished book.
 
-V adresáři podklady jsou podkladová data.
+The podklady directory contains the source data.

@@ -1,36 +1,36 @@
-#toto je ukazkovy YAML soubor pro bnl_creator.pl
-#seskladal jindroush, k nalezeni na https://github.com/jindroush/albituzka
+#this is a sample YAML file for bnl_creator.pl
+#assembled by jindroush, available at https://github.com/jindroush/albituzka
 #
-#Dilo je licencovano pod CC-BY SA
-#Uvedte puvod-Zachovejte licenci 4.0 Mezinarodni (CC BY-SA 4.0) 
+#This work is licensed under CC-BY SA
+#Attribution-ShareAlike 4.0 International (CC BY-SA 4.0) 
 #https://creativecommons.org/licenses/by-sa/4.0/deed.cs
 #
-#scenar:
-#  pohadka je lidova, text prevzat a mirne upraven ze stranek ZS a MS Pysel z Trebice
+#script:
+#  the fairy tale is a folk tale, text taken and slightly modified from the website of the Pysel primary school and kindergarten near Trebic
 #
-#grafika:
-#  obrazky BaraK
+#graphics:
+#  pictures by BaraK
 #
-#zvuk:
-#  texty byly namluveny strojove pomoci free verze MS Speech Studia z Azure (hlasy Antonin a Vlasta)
-#  zvukove efekty stazeny z freesound.org
-#  editovano a nakrajeno v Audacity
+#sound:
+#  texts were voiced by machine using the free version of MS Speech Studio from Azure (voices Antonin and Vlasta)
+#  sound effects downloaded from freesound.org
+#  edited and cut in Audacity
 
 
-#zde zacina hlavicka (na --- nesahat, oddeluje sekce!)
+#header starts here (do not touch the ---, it separates sections!)
 ---
 
-#cislo knihy, OID kod k nemu musi byt vytisten na 'zapinacim' tlacitku
+#book number, its OID code must be printed on the 'power on' button
 book_id: 0x0803
 
-#tyto OID jsou zabudovane a nejsou potreba z hlediska generovani BNL souboru
-#jsou zde jen kvuli generovani OIDu k tisku (generator je prida do generate_oids.yaml)
+#these OIDs are built-in and are not needed for generating the BNL file
+#they are here only for generating OIDs for printing (the generator adds them to generate_oids.yaml)
 sys_icons:
   - volume_up
   - volume_down
   - stop
 
-#sifrovani knihy (toto by melo nechat temer vse odsifrovane)
+#book encryption (this should leave almost everything unencrypted)
 encryption:
   header_key: 0x00000100
   prekey:
@@ -52,15 +52,15 @@ encryption:
     - 0x00
   prekey_dw: 0x000000F5
 
-#prepinaci tlacitka mezi mody
-#mod 0 a 1 jsou stejne, prepina se mezi nimi pri dvojitem tuknuti na stejny kod
+#buttons for switching between modes
+#mode 0 and 1 are the same, the pen switches between them when the same code is tapped twice
 book_mode_read:
   mode_0:
     - mod_zakladni.mp3
   mode_2:
     - mod_vice_inf.mp3
 
-#zvuk, ktery se ozve pri prvnim stisknuti Start tlacitka - totez by melo byt na oid_x0000
+#sound played on the first press of the Start button - the same should be on oid_x0000
 start_button_1st_read:
   mode_0:
     - kniha_vitej1.mp3
@@ -69,7 +69,7 @@ start_button_1st_read:
   mode_2:
     - kniha_vitej1.mp3
 
-#zvuk, ktery se ozve pri druhem stisknuti Start tlacitka
+#sound played on the second press of the Start button
 start_button_2nd_read:
   mode_0:
     - kniha_vitej2.mp3
@@ -78,10 +78,10 @@ start_button_2nd_read:
   mode_2:
     - kniha_vitej2.mp3
 
-#nezname/nepopsane tabulky
-#radeji na ne nesahejte, max si vymente zvukove soubory
-#slysitelne prehravaji jen 'znelku' a negativni a pozitivni zvuky, 
-#ale neni zrejme, proc je to tolikrat opakovano a kdy se dany zvuk vyvola
+#unknown/undocumented tables
+#better not touch them, at most replace the sound files
+#audibly they only play the 'jingle' and the negative and positive sounds, 
+#but it is not clear why it is repeated so many times and when a given sound is triggered
 unk_tbl_ptr_16:
   - oid_x01A6_chime
   - oid_x01A7_chime
@@ -102,10 +102,10 @@ unk_tbl_ptr_29:
   - oid_x01B7_buzz
 
 
-#odtud jsou informace o kvizu
+#quiz information starts here
 ---
-#reakce na spatnou odpoved
-#proc je rozdeleno do dvou poli a jak jsou pole dlouha, to neni zatim vysvetleno
+#reaction to a wrong answer
+#why it is split into two arrays and how long the arrays are has not been explained yet
 quiz_neg1:
   - oid_x019B_buzz
   - oid_x019C_buzz
@@ -118,8 +118,8 @@ quiz_neg2:
   - oid_x01A2_buzz_jednou
   - oid_x01A3_buzz
 
-#reakce na spravnou odpoved
-#proc je rozdeleno do dvou poli a jak jsou pole dlouha, to neni zatim vysvetleno
+#reaction to a correct answer
+#why it is split into two arrays and how long the arrays are has not been explained yet
 quiz_pos1:
   - oid_x0190_ting
   - oid_x0191_ting
@@ -133,8 +133,8 @@ quiz_pos2:
   - oid_x0199_ting_vyborne   
   - oid_x019A_ting_velmidobre
 
-#vyhodnoceni kvizu. Ma vzdy N+1 hodnot pro N otazek
-#je to 0,1,2,3,4 spravnych odpovedi a pak vsechny spravne
+#quiz evaluation. Always has N+1 values for N questions
+#it is 0,1,2,3,4 correct answers and then all correct
 quiz_results:
   - oid_x01B8_kviz_vysledek_0
   - oid_x01B9_kviz_vysledek_1
@@ -143,19 +143,19 @@ quiz_results:
   - oid_x01BC_kviz_vysledek_4
   - oid_x01BD_kviz_vysledek_5
 
-#zde zacinaji vlastni stranky kvizu
+#the actual quiz pages start here
 quizes:
-    #kolik otazek bude v kvizu polozeno
+    #how many questions will be asked in the quiz
   - q_asked: 0x0005
-    #prvni kviz je vzdy oid 100! Zvuk muze byt libovolny oid, ale dava se shodny
+    #the first quiz is always oid 100! The sound can be any oid, but the same one is used
     q_oid: oid_100_kviz1
-    #typ kvizu, znamy je 0 a 4, viz dokumentace
+    #quiz type, known types are 0 and 4, see documentation
     q_type: 0x0000
-    #nedobre zdokumentovano, viz dokumentace
+    #poorly documented, see documentation
     q_unk: 0x0000
-    #zde jsou jednotlive otazky
+    #the individual questions are here
     questions:
-        #toto jsou oidy spravnych odpovedi
+        #these are the oids of the correct answers
       - q1_good_reply_oids:
           - oid_11001_slepicka
           - oid_11007_slepicka
@@ -166,9 +166,9 @@ quizes:
           - oid_11026_slepicka
           - oid_11030_slepicka
           - oid_11034_slepicka
-        #toto je oid pro zvuk otazky
+        #this is the oid for the question sound
         q1_oid: oid_13000_kdo_se_rozdeli
-        #nezname
+        #unknown
         q1_unk: 0
 
       - q1_good_reply_oids:
@@ -243,13 +243,13 @@ quizes:
         q1_unk: 0
 
 
-#odtud je tabulka oidu
-#identifikator oidu ma tvar
+#the oid table starts here
+#an oid identifier has the form
 #oid_
-#xHHHH nebo DDDDD - cislo v hexadecimalnim nebo decimalnim tvaru
-#_TTTT - vysvetlujici text pro uzivatele
+#xHHHH or DDDDD - number in hexadecimal or decimal form
+#_TTTT - explanatory text for the user
 #
-#tedy oid_x0064, oid_x0064_kviz1, oid_100, oid_100_kviz1 je to stejne z hlediska bnl souboru
+#so oid_x0064, oid_x0064_kviz1, oid_100, oid_100_kviz1 are the same from the bnl file's point of view
 ---
 oid_0:
   mode_0:
@@ -458,9 +458,9 @@ oid_x01BD_kviz_vysledek_5:
     - system_kviz_5_dobre.mp3
 
 
-#vocamcad jsou uz 'uzivatelske' oidy
+#from here on are the 'user' oids
 
-#krok1
+#step1
 oid_11000_deleni:
   mode_0:
     - mod0_zrnicko_rozdelili.mp3
@@ -494,7 +494,7 @@ oid_11003_zrnicko:
     - mod2_krok1.mp3
 
 
-#krok2
+#step2
 oid_11004_nedeleni:
   mode_0:
     - mod0_nedelit_se.mp3
@@ -528,7 +528,7 @@ oid_11007_slepicka:
     - mod2_krok2.mp3
 
 
-#krok3
+#step3
 oid_11010_kohoutek:
   mode_0:
     - mod0_kohoutek_dusi.mp3
@@ -553,7 +553,7 @@ oid_11036_smrt:
   mode_2:
     - mod2_krok3.mp3
 
-#krok4
+#step4
 oid_11012_voda:
   mode_0:
     - mod0_voda.mp3
@@ -586,7 +586,7 @@ oid_11015_studna:
   mode_2:
     - mod2_krok4.mp3
 
-#krok5
+#step5
 oid_11016_satek:
   mode_0:
     - mod0_satek.mp3
@@ -619,7 +619,7 @@ oid_11019_svadlenka:
   mode_2:
     - mod2_krok5.mp3
 
-#krok6
+#step6
 oid_11020_jelito:
   mode_0:
     - mod0_jelito.mp3
@@ -652,7 +652,7 @@ oid_11023_slepicka:
   mode_2:
     - mod2_krok6.mp3
 
-#krok7
+#step7
 oid_11024_jelito:
   mode_0:
     - mod0_jelito.mp3
@@ -686,7 +686,7 @@ oid_11027_prasatko:
     - mod2_krok7.mp3
 
 
-#krok8
+#step8
 oid_11028_mleko:
   mode_0:
     - mod0_mleko.mp3
@@ -720,7 +720,7 @@ oid_11031_kravicka:
     - mod2_krok8.mp3
 
 
-#krok9
+#step9
 oid_11032_mrak:
   mode_0:
     - mod0_mrak.mp3
@@ -745,7 +745,7 @@ oid_11034_slepicka:
   mode_2:
     - mod2_krok9.mp3
 
-#krok10
+#step10
 oid_11035_finale:
   mode_0:
     - mod0_finale.mp3
@@ -754,7 +754,7 @@ oid_11035_finale:
   mode_2:
     - mod2_krok10.mp3
 
-#vsechno
+#everything
 oid_12000_vsechno:
   mode_0:
     - mod_cela_pohadka.mp3
@@ -794,7 +794,7 @@ oid_12000_vsechno:
     - mod2_krok10.mp3
 
 
-#odsud jsou otazky kvizu
+#quiz questions start here
 oid_13000_kdo_se_rozdeli:
   mode_0:
     - kviz_ot_kdo_se_rozdeli.mp3

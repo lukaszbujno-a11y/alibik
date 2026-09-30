@@ -1,4 +1,4 @@
-# Hotová kniha
-slepicka.bnl je zvukový soubor pro pero.
+# Finished book
+slepicka.bnl is the sound file for the pen.
 
-slepicka.pdf nebo slepicka.png jsou tisková data - černobílá, 1200dpi. Nastavení tisku musí být centrovat, nezmenšovat, A4.
+slepicka.pdf or slepicka.png is the print data - black and white, 1200dpi. Print settings must be: centered, no scaling, A4.

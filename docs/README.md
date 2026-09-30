@@ -1,10 +1,10 @@
-### Lokální dokumentace
-- [albituzka_firmware.pdf](albituzka_firmware.pdf) - popis zjištěných informací o firmware tužky
-- [albituzka_bnl_format.pdf](albituzka_bnl_format.pdf) - popis zjištěných informací o formátu BNL
-- [albituzka_hw2.pdf](albituzka_hw2.pdf) - popis zjištěných informací o vnitřnostech tužky 2.0
-- [albituzka_soft.xlsx](albituzka_soft.xlsx) - přehled všech stažených BNL souborů, s několika základními charakteristikami
+### Local documentation
+- [albituzka_firmware.pdf](albituzka_firmware.pdf) - description of the findings about the pen firmware
+- [albituzka_bnl_format.pdf](albituzka_bnl_format.pdf) - description of the findings about the BNL format
+- [albituzka_hw2.pdf](albituzka_hw2.pdf) - description of the findings about the internals of pen 2.0
+- [albituzka_soft.xlsx](albituzka_soft.xlsx) - overview of all downloaded BNL files, with a few basic characteristics
 
-### Série článků o vnitřnostech tužky na Táta Geek
+### Series of articles about the pen internals on Táta Geek (in Czech)
 - https://tatageek.blog/2021/01/28/jak-funguje-albi-tuzka/
 - https://tatageek.blog/2022/02/28/jak-funguji-bnl-soubory-pro-albi-tuzku/
 - https://tatageek.blog/2022/03/07/zaklady-zpetneho-inzenyrstvi/
@@ -12,19 +12,19 @@
 - https://tatageek.blog/2022/03/21/hacking-a-cracking-bnl-souboru-pro-albi-tuzku-2-cast/
 - https://tatageek.blog/2022/03/28/jak-vytvorit-vlastni-knizku-pro-albi-tuzku/
 
-### Info české
+### Czech sources
 - https://tapkame.cz/kouzelne-cteni-od-albi-rozhovor-o-projektu-pripravovanych-novinkach-vcetne-anglicke-verze-i-uzitecne-informace-pro-ctenare/
 - https://forum.root.cz/index.php?topic=22676.0
 
-### Info cizí
+### Foreign sources
 - https://github.com/entropia/tip-toi-reveng
 - https://github.com/marian-m12l/s9ke-toolchain
 
-### Info o procesoru
+### Processor info
 - https://www.sonix.com.tw/article-en-4259-28852
 - https://www.sonix.com.tw/article-en-4260-29173
 
-### Albi soubory
+### Albi files
 - CZ https://www.kouzelnecteni.cz/soubory-ke-stazeni
 - SK https://www.kuzelnecitanie.sk/sk/subory-na-stiahnutie
 - PL https://www.czytajzalbikiem.pl/pl/ksiazki/pobieranie-plikow
@@ -33,15 +33,15 @@
 - SI https://www.zabavnoucenje.com/si/datoteke-za-kuku
 - HR https://www.zabavnoucenje.com/hr/datoteke-za-kuku
 
-### Kompatibilní soubory bnl
+### Compatible BNL files
 - http://www.speakitbooks.com/books.html
-	(nějaké anglicko-arabské učebnice)
+	(some English-Arabic textbooks)
 - https://smartkoala.com.ua/ru/ruchka-kasper
 - https://smartkoala.com.ua/ru/ruchka-robot
 - https://www.emoti.com.sg/collections/audible-book
-	(tlačítko download audio je u každé knížky v eshopu)
+	(there is a download audio button for each book in the e-shop)
 
-### Nekompatibilní soubory bnl
+### Incompatible BNL files
 - https://www.jlb.com.sg/download/for-ppw-series-1-5-.html
 - https://einstylo.ca/Download2.php?reader=2%20&%20lang=2
 - https://www.dahhsin.com.tw/downLoad.php?lv01_type=PEN-BOOK

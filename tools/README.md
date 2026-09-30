@@ -1,21 +1,22 @@
 
-### Prostředí
-Všechny nástroje byly napsány pod Windows 10, na ActiveState Perlu 5.24.3. Pro běh na jiném OS by neměly být teoreticky
-potřebné žádné úpravy. Je možné, že bude nutno doinstalovávat některé moduly, které nejsou typickou součástí instalace,
-např. Imager, Imager::Fill, YAML, MP3::Info a další. Jakým způsobem doinstalovat moduly lze dohledat v dokumentaci.
-Byl proveden i test na Windows 7, Strawberry Perl, vše je funkční. První pokus o dokumentaci skriptů lze dohledat v docs/albituzka_nastroje.pdf
-Všechny nástroje jsou pouze příkazovo-řádkové, nemají žádné grafické rozhraní.
+### Environment
+All tools were written under Windows 10, on ActiveState Perl 5.24.3. In theory, no modifications should be needed to run them
+on another OS. You may need to install some modules which are not a typical part of the installation,
+e.g. Imager, Imager::Fill, YAML, MP3::Info and others. How to install modules can be found in the documentation.
+A test was also done on Windows 7 with Strawberry Perl, everything works. The first attempt at documenting the scripts can be found in docs/albituzka_nastroje.pdf
+All tools are command-line only, they have no graphical interface.
 
-### Popis nástrojů v tomto adresáři
+### Description of the tools in this directory
 
-creator/bnl_creator.pl - generuje BNL soubor ze mnoha mp3 souborů a bnl.yaml. Tyto lze získat pomocí bnl_dis.pl z existujícího bnl souboru
+creator/bnl_creator.pl - generates a BNL file from many mp3 files and bnl.yaml. These can be obtained with bnl_dis.pl from an existing bnl file
 
-disassembler/bnl_dis.pl - rozebírá BNL soubor na mp3 soubory a bnl.yaml.
+disassembler/bnl_dis.pl - disassembles a BNL file into mp3 files and bnl.yaml.
 
-firmware_cutter/fw_cutter.pl - identifikuje a rozřezává obsah firmware souboru update.chp
+firmware_cutter/fw_cutter.pl - identifies and cuts up the contents of the update.chp firmware file
 
-firmware_disasm - nástroj pro disassemblování firmware
+firmware_disasm - tool for disassembling the firmware
 
-oid_generator/oid_png_generator - generuje vytisknutelný png soubor s jedním OID kódem. Nebo více ze vstupního souboru
+oid_generator/oid_png_generator - generates a printable png file with one OID code, or more from an input file
 
-oid_rawtable/oid_table_extract - extrahuje konverzní tabulku OID 2.0 raw kódů na interní kódy z nástroje OidCreator
+oid_rawtable/oid_table_extract - extracts the conversion table of OID 2.0 raw codes to internal codes from the OidCreator tool
+
