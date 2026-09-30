@@ -20,6 +20,32 @@ mp3 files + bnl.yaml --bnl_creator.pl--> book.bnl            --> copy to the pen
                                      \-> generate_oids.yaml  --oid_png_generator.pl--> oid_*.png --> lay out and print
 ```
 
+## How the pen selects a book
+
+OID codes are **not unique across books**. Every book numbers its codes from 0 and all official books
+use codes from 10000 upwards, so the same code (e.g. 10000) exists in many books and means something
+different in each. The pen only reads the code number and plays the sound from the book that is
+**currently open**.
+
+The book is chosen by its **`book_id`**, not by OID codes and not by the file name. According to the
+firmware analysis in [mapfile.def](../tools/firmware_disasm/mapfile.def):
+
+- `count_books__preload_50_book_ids` scans the `.bnl` files on the pen and preloads their book ids,
+- `get_book_id_from_header` reads the book id from the file header (the file name is not used),
+- `find_book` opens the file with the matching book id when the book's start icon is tapped
+  (the start icon carries the `book_id` as its OID code),
+- `book_ctx` holds exactly one open book at a time.
+
+Consequences:
+
+- **Until the start icon of a book is tapped, the pen keeps playing sounds from the previously
+  opened book.** Tapping a page of a new book without activating it first plays wrong sounds.
+- Every book must have its **start icon printed**, otherwise it cannot be activated.
+- `book_id` **must be unique** among the books on the pen - with a duplicate, the pen may open
+  the other book instead of yours.
+- The function name suggests the pen preloads at most **50 book ids**, so with more than 50 `.bnl`
+  files on the pen some books may not be found (not verified on a real pen).
+
 ## What you need
 
 - **Perl 5** with these modules:
@@ -101,7 +127,8 @@ oid_10001_rooster:
 ### Header fields
 
 - **`book_id`** - number of the book, 701-9999 (decimal or hex, e.g. `0x1F40` = 8000).
-  The pen recognizes the book by this number when the book's start icon is tapped.
+  The pen opens the book by this number when the book's start icon is tapped
+  (see [How the pen selects a book](#how-the-pen-selects-a-book)).
   **Use a number no official book uses.** Official books listed in
   [albituzka_soft.xlsx](albituzka_soft.xlsx) use numbers between 810 and 4020, so a number
   from 8000-9999 is a safe choice. Also use a different number for each of your own books.
@@ -136,7 +163,8 @@ oid_10000_hen:        #code 10000, "_hen" is just a description for you
   (`oid_10000`) or hex with an `x` (`oid_x2710`). The description is ignored by the pen, but it becomes
   part of the generated PNG file name, so it helps you find the right code when laying out the pages.
 - **Use codes from 10000 upwards for your own content.** Codes 100-499 are used by quizzes;
-  lower codes are system codes.
+  lower codes are system codes. The same numbers are used by other books too - that is fine,
+  because only the currently open book is used.
 - `oid_0` should play the same sound as `start_button_1st_read` (the sample book does this too).
 
 ### Quizzes
@@ -196,12 +224,15 @@ whole book. See [test/final/](../test/final/) for print-ready pages of the sampl
 Connect the pen to a computer via USB. Copy your `.bnl` file to the pen the same way as the official
 `.bnl` files downloaded from the Albi websites (see [README.md](README.md) for the download pages):
 look where the official `.bnl` files are stored on your pen and put yours next to them.
-Then tap the book's start icon on your printed page.
 
-The pen selects the book by the `book_id` stored inside the file (that is why the start icon carries
-the `book_id` code). Official files have arbitrary names (e.g. `swiat-zwierzat.bnl`), so the file name
-itself should not matter, but the exact rules for naming and placing files on the pen are not documented
-in this repository. For more details on this step see the article (in Czech)
+The file name does not matter - the pen reads the `book_id` from the file header (official files have
+arbitrary names, e.g. `swiat-zwierzat.bnl`). Keep in mind the limit of about 50 books described in
+[How the pen selects a book](#how-the-pen-selects-a-book).
+
+**Always tap the book's start icon first**, then the pages. Without it the pen stays in the previously
+opened book and plays its sounds.
+
+For more details on this step see the article (in Czech)
 https://tatageek.blog/2022/03/28/jak-vytvorit-vlastni-knizku-pro-albi-tuzku/
 
 ## Troubleshooting
@@ -216,5 +247,6 @@ https://tatageek.blog/2022/03/28/jak-vytvorit-vlastni-knizku-pro-albi-tuzku/
 | `Invalid oid format` | entry name does not match `oid_<number>[_description]`, or a quiz uses old `q1_*` keys |
 | `Expected keyword mode_X` | a typo in a `mode_N` key |
 | `Can't locate YAML.pm` / `Imager.pm` | the Perl module is not installed |
+| The pen plays sounds from a different book | the book was not activated - tap its start icon first; if it persists, another book on the pen has the same `book_id` |
 
 To check the tools themselves, build the sample book as described in [test/README.md](../test/README.md).
