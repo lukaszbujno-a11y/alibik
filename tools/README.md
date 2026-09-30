@@ -7,6 +7,7 @@ A test was also done on Windows 7 with Strawberry Perl, everything works. The fi
 All tools are command-line only, they have no graphical interface.
 
 ### Description of the tools in this directory
+For how the tools work together when creating a book, see [docs/creating_a_book.md](../docs/creating_a_book.md).
 
 creator/bnl_creator.pl - generates a BNL file from many mp3 files and bnl.yaml. These can be obtained with bnl_dis.pl from an existing bnl file
 

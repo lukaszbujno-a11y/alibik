@@ -7,6 +7,8 @@ The tools directory contains tools for disassembling and assembling BNL files, a
 
 The test directory contains a sample file for a custom book together with its source materials.
 
+To create your own book, see [docs/creating_a_book.md](docs/creating_a_book.md).
+
 Reverse engineering of BNL files used for Albi electronic pen. Works also for files found on SpeakItBooks.com. To check if this description is valid for your BNL files, XOR first two 32bit DWORDs, you should get 0x200 in little endian.
 
 

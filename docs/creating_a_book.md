@@ -1,0 +1,220 @@
+# Creating your own book
+
+This guide walks through creating a custom book for the Albi pen: from sound recordings to a printed
+book and a `.bnl` file for the pen. The sample book in [test/](../test/) was made this way and is a good
+reference for anything not covered here (e.g. quizzes).
+
+## Overview
+
+A book consists of two parts:
+
+1. **The `.bnl` file** - all sounds of the book plus the table saying which printed code plays which sound.
+   It is built by `bnl_creator.pl` from:
+   - your **mp3 files**
+   - **`bnl.yaml`** - the only configuration file you write
+2. **The printed pages** - your pictures with invisible OID codes laid over them. The pen reads the code
+   under its tip and plays the matching sound from the `.bnl` file.
+
+```
+mp3 files + bnl.yaml --bnl_creator.pl--> book.bnl            --> copy to the pen
+                                     \-> generate_oids.yaml  --oid_png_generator.pl--> oid_*.png --> lay out and print
+```
+
+## What you need
+
+- **Perl 5** with these modules:
+  - `YAML` - for `bnl_creator.pl`
+  - `Imager` (includes `Imager::Fill`) - for `oid_png_generator.pl`
+
+  Check with `perl -MYAML -e1` and `perl -MImager -e1`; install missing ones with `cpan YAML` / `cpan Imager`.
+- **A sound editor** (e.g. Audacity) to record and cut the sounds into mp3 files.
+- **A graphics editor** (e.g. GIMP, Photoshop) to lay out the pages and place the OID codes.
+- **A printer** able to print at 1200 dpi. Printing quality decides whether the pen can read the codes.
+
+## Step 1: Prepare the sounds
+
+Every sound the pen plays is a separate mp3 file. Put all of them into one working directory -
+`bnl_creator.pl` looks for the mp3 files in the directory it is run from.
+
+- Use plain file names without spaces or diacritics, e.g. `hen.mp3`, `welcome.mp3`.
+- Official books use CBR mp3 at 44.1 kHz, mostly 64-96 kbps (see `albituzka_soft.xlsx`).
+
+## Step 2: Write bnl.yaml
+
+`bnl.yaml` has three sections separated by `---` lines, always in this order:
+
+1. **header** - book number, start sounds, modes, encryption
+2. **quiz** - quiz definitions (may be empty)
+3. **oids** - which code plays which sound
+
+### Minimal template (no quiz)
+
+```yaml
+---
+#book number (701-9999), its OID is printed on the book's start icon
+book_id: 0x1F40
+
+#built-in pen icons you want to print in the book (volume_up, volume_down, stop, compare)
+sys_icons:
+  - volume_up
+  - volume_down
+  - stop
+
+#keep as is - leaves the book effectively unencrypted
+encryption:
+  header_key: 0x00000100
+  prekey: [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+  prekey_dw: 0x000000F5
+
+#sound announcing the mode when a mode icon is tapped
+book_mode_read:
+  mode_0:
+    - mode_reading.mp3
+
+#sound on the first tap of the book's start icon
+start_button_1st_read:
+  mode_0:
+    - welcome.mp3
+
+#sound on the second tap of the book's start icon
+start_button_2nd_read:
+  mode_0:
+    - welcome_again.mp3
+
+---
+quizes: []
+
+---
+oid_0:
+  mode_0:
+    - welcome.mp3
+
+oid_10000_hen:
+  mode_0:
+    - hen.mp3
+
+oid_10001_rooster:
+  mode_0:
+    - rooster.mp3
+```
+
+### Header fields
+
+- **`book_id`** - number of the book, 701-9999 (decimal or hex, e.g. `0x1F40` = 8000).
+  The pen recognizes the book by this number when the book's start icon is tapped.
+  **Use a number no official book uses.** Official books listed in
+  [albituzka_soft.xlsx](albituzka_soft.xlsx) use numbers between 810 and 4020, so a number
+  from 8000-9999 is a safe choice. Also use a different number for each of your own books.
+- **`sys_icons`** - built-in pen functions: `volume_up`, `volume_down`, `stop`, `compare`.
+  They do not need any sound; they are listed only so that their codes get generated for printing.
+- **`encryption`** - copy it from the template.
+- **`book_mode_read`**, **`start_button_1st_read`**, **`start_button_2nd_read`** - sounds for mode icons and for the start icon.
+
+### Modes
+
+Each code can play a different sound in each mode, e.g. mode 0 reads the text and mode 2 tells
+more information. Modes are written as `mode_0`, `mode_1`, `mode_2`, ... inside every entry. The number
+of modes of the book is taken from the highest mode used anywhere in the file.
+
+Mode 0 is the default one. Modes 0 and 1 behave as one pair - the pen switches between them when
+the same code is tapped twice. See `book_mode_read` in [test/podklady/bnl.yaml](../test/podklady/bnl.yaml)
+for a book with more modes.
+
+### OID entries
+
+Each entry in the third section binds one code to sounds:
+
+```yaml
+oid_10000_hen:        #code 10000, "_hen" is just a description for you
+  mode_0:
+    - hen.mp3         #one or more files, played one after another
+  mode_2:
+    - hen_facts.mp3
+```
+
+- The name has the form `oid_` + number + optional `_description`. The number is decimal
+  (`oid_10000`) or hex with an `x` (`oid_x2710`). The description is ignored by the pen, but it becomes
+  part of the generated PNG file name, so it helps you find the right code when laying out the pages.
+- **Use codes from 10000 upwards for your own content.** Codes 100-499 are used by quizzes;
+  lower codes are system codes.
+- `oid_0` should play the same sound as `start_button_1st_read` (the sample book does this too).
+
+### Quizzes
+
+Quizzes are optional; with `quizes: []` the build prints a harmless warning `zero length of quiz tables!`.
+If you want a quiz, copy the quiz section and the related OIDs from
+[test/podklady/bnl.yaml](../test/podklady/bnl.yaml) and adapt them. Note that quiz type 0
+uses keys `q0_oid`, `q0_unk` and `q0_good_reply_oids`.
+
+## Step 3: Build the .bnl file
+
+Run in the working directory with your mp3 files and `bnl.yaml`:
+
+```sh
+perl /path/to/repo/tools/creator/bnl_creator.pl -input bnl.yaml -output my_book.bnl
+```
+
+The output ends with `Created my_book.bnl, ... bytes long.` and `Done.` It also creates
+**`generate_oids.yaml`** - the list of all codes you need to print:
+
+- the book's start icon (code = `book_id`)
+- the `sys_icons`
+- the mode icons (for books with more than one mode)
+- quiz icons
+- all your codes from 10000 upwards
+
+Read the warnings: the tool reports missing mp3 files, mp3 files not used by any code and references
+to codes not defined in the oids section.
+
+## Step 4: Generate OID codes
+
+```sh
+perl /path/to/repo/tools/oid_generator/oid_png_generator.pl @generate_oids.yaml
+```
+
+This creates one PNG file per code, named after the entry, e.g. `oid_10000_hen.png`, `oid_icon_start.png`.
+Options:
+
+- `-size N` - size of the code area in millimeters (default 20), or `-sizex N` / `-sizey N` separately
+- `-dpi N` - 600 or 1200 (default 1200)
+
+A single code can be generated with `oid_png_generator.pl 10000 -output hen.png`.
+
+## Step 5: Lay out and print the pages
+
+1. Put your pictures on the pages in a graphics editor.
+2. Place each OID PNG over the area the pen should react to (see [test/final/slepicka.png](../test/final/slepicka.png)
+   for an example). Keep the PNGs at their original resolution; do not scale them.
+3. Print in **black and white, 1200 dpi, A4, centered, without any scaling** ("actual size").
+   Printer scaling or "fit to page" changes the code pattern and the pen will not read it.
+
+**Print a test page first** with a few codes and check that the pen reads them before printing the
+whole book. See [test/final/](../test/final/) for print-ready pages of the sample book.
+
+## Step 6: Copy the book to the pen
+
+Connect the pen to a computer via USB. Copy your `.bnl` file to the pen the same way as the official
+`.bnl` files downloaded from the Albi websites (see [README.md](README.md) for the download pages):
+look where the official `.bnl` files are stored on your pen and put yours next to them.
+Then tap the book's start icon on your printed page.
+
+The pen selects the book by the `book_id` stored inside the file (that is why the start icon carries
+the `book_id` code). Official files have arbitrary names (e.g. `swiat-zwierzat.bnl`), so the file name
+itself should not matter, but the exact rules for naming and placing files on the pen are not documented
+in this repository. For more details on this step see the article (in Czech)
+https://tatageek.blog/2022/03/28/jak-vytvorit-vlastni-knizku-pro-albi-tuzku/
+
+## Troubleshooting
+
+| Message | Cause |
+|---|---|
+| `Book id ... is out of range (701-9999)` | `book_id` outside the allowed range |
+| `Input file references sound file '...' which is not there` | mp3 file missing in the working directory, or a typo in its name |
+| `warning: there is unreferenced file in media dir` | an mp3 file is not used by any entry - harmless, but may be a typo |
+| `warning: there is a reference to OID ... not present in oid table` | a code used in the header or quiz is not defined in the oids section |
+| `Duplicate oid definition` | the same code number is used twice (e.g. `oid_10000_a` and `oid_x2710`) |
+| `Invalid oid format` | entry name does not match `oid_<number>[_description]`, or a quiz uses old `q1_*` keys |
+| `Expected keyword mode_X` | a typo in a `mode_N` key |
+| `Can't locate YAML.pm` / `Imager.pm` | the Perl module is not installed |
+
+To check the tools themselves, build the sample book as described in [test/README.md](../test/README.md).

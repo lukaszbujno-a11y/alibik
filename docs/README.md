@@ -1,4 +1,5 @@
 ### Local documentation
+- [creating_a_book.md](creating_a_book.md) - step-by-step guide to creating your own book
 - [albituzka_firmware.pdf](albituzka_firmware.pdf) - description of the findings about the pen firmware
 - [albituzka_bnl_format.pdf](albituzka_bnl_format.pdf) - description of the findings about the BNL format
 - [albituzka_hw2.pdf](albituzka_hw2.pdf) - description of the findings about the internals of pen 2.0
