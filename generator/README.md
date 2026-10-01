@@ -31,6 +31,13 @@ https://inkscape.org. It is found on PATH, in `/Applications`, or through the `I
   too small (`--min-size`) or too dark. Needs Inkscape (found on PATH, in `/Applications`, or via `INKSCAPE`).
 - `albik.oid_map` - stable object -> code assignment kept in `oid_map.yaml` (codes 10000-49999, a removed
   object keeps its code) and the codes of the pen buttons.
+- `albik.page_composer` - the printable page:
+  `.venv/bin/python -m albik.page_composer scene.svg --objects build/objects.yaml --book-id 8000 -o build/page.pdf`
+  renders the drawing at the printer resolution (`--dpi 600|1200`), lightens it under the codes (`--lighten`),
+  fills every object mask with its code on a grid anchored at the page origin, draws a 100 mm calibration
+  ruler (`--no-ruler`) and writes one lossless raster 1:1 into the PDF; also `build/page_preview.png`.
+  Codes are assigned in `oid_map.yaml` next to `objects.yaml` unless `--oid-map` is given.
+  At 1200 dpi an A4 page takes about 8 s and up to 2.5 GB of memory.
 
 ## Data
 

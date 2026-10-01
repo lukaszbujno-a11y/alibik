@@ -13,6 +13,7 @@ dependencies = [
     "Pillow",
     "PyYAML",
     "scipy",
+    "img2pdf",
 ]
 
 [project.optional-dependencies]
