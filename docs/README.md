@@ -1,8 +1,10 @@
 ### Local documentation
 - [creating_a_book.md](creating_a_book.md) - step-by-step guide to creating your own book
+- [drawing_to_book/](drawing_to_book/README.md) - concept of an automatic pipeline from an Inkscape drawing to a book (not implemented yet)
 - [albituzka_firmware.pdf](albituzka_firmware.pdf) - description of the findings about the pen firmware
 - [albituzka_bnl_format.pdf](albituzka_bnl_format.pdf) - description of the findings about the BNL format
 - [albituzka_hw2.pdf](albituzka_hw2.pdf) - description of the findings about the internals of pen 2.0
+- [en/](en/) - English translations of the three PDF documents above ([BNL format](en/albituzka_bnl_format.md), [firmware](en/albituzka_firmware.md), [hardware 2.0](en/albituzka_hw2.md))
 - [albituzka_soft.xlsx](albituzka_soft.xlsx) - overview of all downloaded BNL files, with a few basic characteristics
 
 ### Series of articles about the pen internals on Táta Geek (in Czech)

@@ -55,7 +55,8 @@ Consequences:
   Check with `perl -MYAML -e1` and `perl -MImager -e1`; install missing ones with `cpan YAML` / `cpan Imager`.
 - **A sound editor** (e.g. Audacity) to record and cut the sounds into mp3 files.
 - **A graphics editor** (e.g. GIMP, Photoshop) to lay out the pages and place the OID codes.
-- **A printer** able to print at 1200 dpi. Printing quality decides whether the pen can read the codes.
+- **A printer**, ideally a laser printer at 1200 dpi. Printing quality decides whether the pen can read the
+  codes - see [Printing tips](#printing-tips).
 
 ## Step 1: Prepare the sounds
 
@@ -219,6 +220,48 @@ A single code can be generated with `oid_png_generator.pl 10000 -output hen.png`
 **Print a test page first** with a few codes and check that the pen reads them before printing the
 whole book. See [test/final/](../test/final/) for print-ready pages of the sample book.
 
+### Printing tips
+
+The pen reads the dots in infrared. It sees practically only carbon-based black (black toner, pigment black
+ink); color inks and toners are mostly invisible to it. The tips below come from general experience with
+OID codes (mostly the Tiptoi community), not from the Albi documents - verify them with a test page.
+
+**Printer type:**
+
+| Printer | Chances | Why |
+|---|---|---|
+| Mono laser, 1200 dpi | very good | carbon toner, sharp dots |
+| Mono laser, 600 dpi | usually good | generate the codes with `-dpi 600`, so the printer does not resample them |
+| Color laser | good | color toners are invisible to the pen, so the artwork does not cover the dots |
+| Inkjet | varies | pigment black ink works, but ink spreads in paper and dots grow; some printers mix black from colors, which the pen cannot see |
+
+**Settings:**
+
+- Generate the codes at the printer's **native resolution** (`-dpi 600` or `-dpi 1200`). A mismatch makes the
+  driver resample the page and blur or drop the dots.
+- **Actual size / 100 %**, no "fit to page", no "shrink oversized pages", no borderless printing.
+- **Highest quality**, no toner/ink saving or draft mode.
+- On an inkjet, choose the mode that prints black with the black cartridge (e.g. "black ink only" or
+  "grayscale", if the driver offers it). The artwork will then be grey as well.
+
+**Paper:** matte office paper, preferably thicker (100–120 g/m²). Photo and glossy paper usually do not work.
+
+**Artwork:**
+
+- Keep the pictures under the codes light; large dark areas hide the dots (the sample book lightens photos
+  under codes to 40 % of their darkness).
+- In color printing, dark areas mixed from colors (CMY) do not disturb the codes, but black ink/toner
+  does. The printer driver decides how dark colors are printed - check it on the test page.
+
+**Checking the print:**
+
+- Print a 100 mm line next to the codes and measure it. If it is shorter, the page was scaled.
+- Pen 2.0 has a hidden **test mode**: switch it on while holding the power and Vol+ buttons. The pen then
+  speaks every OID code it reads as a decimal number (in Chinese), so you can check the print without
+  building a `.bnl` file. See [the firmware document](en/albituzka_firmware.md#test-mode).
+- Quickest check whether your printer is suitable at all: print [test/final/slepicka.pdf](../test/final/slepicka.pdf),
+  copy [test/final/slepicka.bnl](../test/final/slepicka.bnl) to the pen and tap the pages.
+
 ## Step 6: Copy the book to the pen
 
 Connect the pen to a computer via USB. Copy your `.bnl` file to the pen the same way as the official
@@ -247,6 +290,7 @@ https://tatageek.blog/2022/03/28/jak-vytvorit-vlastni-knizku-pro-albi-tuzku/
 | `Invalid oid format` | entry name does not match `oid_<number>[_description]`, or a quiz uses old `q1_*` keys |
 | `Expected keyword mode_X` | a typo in a `mode_N` key |
 | `Can't locate YAML.pm` / `Imager.pm` | the Perl module is not installed |
+| The pen does not react to a printed code | printing problem - see [Printing tips](#printing-tips): scaling, wrong dpi, too dark artwork, ink the pen cannot see |
 | The pen plays sounds from a different book | the book was not activated - tap its start icon first; if it persists, another book on the pen has the same `book_id` |
 
 To check the tools themselves, build the sample book as described in [test/README.md](../test/README.md).
