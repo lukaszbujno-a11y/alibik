@@ -11,6 +11,8 @@ requires-python = ">=3.9"
 dependencies = [
     "numpy",
     "Pillow",
+    "PyYAML",
+    "scipy",
 ]
 
 [project.optional-dependencies]

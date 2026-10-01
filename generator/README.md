@@ -13,13 +13,24 @@ python3 -m venv .venv
 ```
 
 The tests compare the output with the Perl generator; they need Perl with `Imager` and `YAML`
-(also found in `~/perl5` via local::lib), otherwise those tests are skipped.
+(also found in `~/perl5` via local::lib), otherwise those tests are skipped. The `svg_import` tests need
+Inkscape and are skipped without it.
+
+Inkscape (free) is needed for the drawing tools: `brew install --cask inkscape` on macOS, or
+https://inkscape.org. It is found on PATH, in `/Applications`, or through the `INKSCAPE` variable.
 
 ## Modules
 
 - `albik.oid` - OID 2.0 code rendering, pixel-identical to `tools/oid_generator/oid_png_generator.pl`.
   `tile()` returns one tile, `fill()` covers an area with the grid anchored at the page origin.
   Also usable as a tool: `.venv/bin/python -m albik.oid 10000 --size 20 --dpi 1200 -o oid_10000.png`
+- `albik.svg_import` - finds the labelled objects of an Inkscape drawing and exports their masks:
+  `.venv/bin/python -m albik.svg_import scene.svg -o build/` writes `build/objects.yaml`, `build/masks/*.png`
+  (whole page at 300 dpi, white = object) and `build/preview.png` with numbered objects for review.
+  Upper objects cover lower ones, touching objects get a 1 mm gap (`--gap`); warns about objects that are
+  too small (`--min-size`) or too dark. Needs Inkscape (found on PATH, in `/Applications`, or via `INKSCAPE`).
+- `albik.oid_map` - stable object -> code assignment kept in `oid_map.yaml` (codes 10000-49999, a removed
+  object keeps its code) and the codes of the pen buttons.
 
 ## Data
 
