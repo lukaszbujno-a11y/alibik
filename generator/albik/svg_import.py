@@ -51,6 +51,9 @@ NAMESPACES = {
 BUTTONS = {"start"} | set(BUTTON_CODES)
 UNITS_MM = {"mm": 1.0, "cm": 10.0, "in": 25.4, "pt": 25.4 / 72, "pc": 25.4 / 6, "px": 25.4 / 96, "": 25.4 / 96}
 A4_MM = (210.0, 297.0)
+#elements hidden in the index map when they are neither an object nor contain one
+DRAWABLE = {"g", "a", "switch", "svg", "path", "rect", "circle", "ellipse", "line", "polyline", "polygon",
+            "text", "image", "use", "foreignObject"}
 
 #defaults, all in mm
 MASK_DPI = 300
@@ -73,7 +76,7 @@ class PageObject:
     label: str
     id: str
     button: bool
-    elements: list = field(default_factory=list)  # svg ids in document order
+    elements: list = field(default_factory=list)  # svg elements in document order
     mask: np.ndarray = None
 
 
@@ -106,13 +109,10 @@ def page_size_mm(root: ET.Element) -> tuple:
 
 
 def find_objects(root: ET.Element) -> list:
-    """Collects labelled elements in document order (= bottom to top) and groups them by label."""
+    """Collects labelled elements in document order and groups them by label."""
     objects = {}
-    used_ids = {el.get("id") for el in root.iter() if el.get("id")}
-    counter = 0
 
     def visit(el):
-        nonlocal counter
         for child in el:
             label = (child.get(LABEL) or "").strip()
             is_layer = child.get(GROUPMODE) == "layer"
@@ -133,12 +133,7 @@ def find_objects(root: ET.Element) -> list:
                 obj = objects[key] = PageObject(label=label, id=oid, button=button)
             elif obj.label != label:
                 raise SvgImportError(f"labels '{obj.label}' and '{label}' give the same id '{oid}', rename one of them")
-            if not child.get("id"):
-                while f"albik_{counter}" in used_ids:
-                    counter += 1
-                child.set("id", f"albik_{counter}")
-                used_ids.add(child.get("id"))
-            obj.elements.append(child.get("id"))
+            obj.elements.append(child)
             #labelled elements inside an object are part of it, not separate objects
 
     visit(root)
@@ -154,63 +149,81 @@ def inkscape_binary() -> str:
     return exe
 
 
-def export_pngs(svg: Path, element_ids: list, out_dir: Path, dpi: int) -> tuple:
-    """Exports every element alone on the whole page, plus the whole page on white; one Inkscape run."""
-    actions = ["export-type:png", f"export-dpi:{dpi}", "export-area-page"]
-    actions += ["export-background:white", "export-background-opacity:1",
-                f"export-filename:{out_dir / 'page.png'}", "export-do"]
-    actions += ["export-background-opacity:0", "export-id-only"]
-    files = []
-    for i, eid in enumerate(element_ids):
-        f = out_dir / f"el_{i}.png"
-        actions += [f"export-id:{eid}", f"export-filename:{f}", "export-do"]
-        files.append(f)
+def render_png(svg: Path, out: Path, dpi: int, actions: list) -> np.ndarray:
+    actions = ["export-type:png", f"export-dpi:{dpi}", "export-area-page", *actions,
+               f"export-filename:{out}", "export-do"]
     r = subprocess.run([inkscape_binary(), str(svg), "--actions=" + ";".join(actions)], capture_output=True, text=True)
-    if r.returncode != 0:
+    if r.returncode != 0 or not out.exists():
         raise SvgImportError("Inkscape export failed:\n" + r.stderr)
-    return out_dir / "page.png", files
+    return np.array(Image.open(out).convert("RGBA"))
 
 
-def compute_masks(objects: list, element_masks: dict, gap_px: float) -> None:
-    """Element masks minus everything of other objects above them, then a gap between neighbouring objects."""
-    shape = next(iter(element_masks.values())).shape
+def index_color(k: int) -> tuple:
+    """Object number k (from 1) -> a flat colour; channels step by 16, so small rendering errors still decode."""
+    return tuple(16 * ((k >> shift) & 15) + 8 for shift in (0, 4, 8))
+
+
+def decode_index(rgba: np.ndarray) -> np.ndarray:
+    digits = [np.clip(rgba[:, :, c].astype(np.int32) // 16, 0, 15) for c in range(3)]
+    index = digits[0] | digits[1] << 4 | digits[2] << 8
+    return np.where(rgba[:, :, 3] > 127, index, 0)
+
+
+def paint_index_map(root: ET.Element, objects: list) -> None:
+    """Turns the drawing into a map of objects: every object a flat colour of its number, other artwork hidden.
+
+    Each object element is wrapped in a group with a filter flooding its shape with the colour; anything else
+    drawable is wrapped in a hidden group. Wrapping (not editing the element) keeps clones of hidden artwork
+    visible and the element's own filters. Inkscape then resolves what covers what, as on the printed page.
+    """
+    number = {id(el): k for k, obj in enumerate(objects, 1) for el in obj.elements}
+    ancestors = set()
+    parents = {child: parent for parent in root.iter() for child in parent}
     for obj in objects:
-        obj.mask = np.zeros(shape, dtype=bool)
+        for el in obj.elements:
+            while el in parents:
+                el = parents[el]
+                ancestors.add(id(el))
 
-    #element_masks is in document order = z-order; walk from the top, everything above covers what is below
-    sequence = list(element_masks)
-    owner = {eid: obj for obj in objects for eid in obj.elements}
-    covered = np.zeros(shape, dtype=bool)
-    for eid in reversed(sequence):
-        visible = element_masks[eid] & ~covered
-        owner[eid].mask |= visible
-        covered |= element_masks[eid]
+    defs = ET.SubElement(root, f"{{{SVG_NS}}}defs")
+    for k in range(1, len(objects) + 1):
+        f = ET.SubElement(defs, f"{{{SVG_NS}}}filter", {
+            "id": f"albik_index_{k}", "filterUnits": "userSpaceOnUse", "x": "-1e6", "y": "-1e6",
+            "width": "2e6", "height": "2e6", "color-interpolation-filters": "sRGB"})
+        ET.SubElement(f, f"{{{SVG_NS}}}feFlood", {"flood-color": "#%02x%02x%02x" % index_color(k)})
+        ET.SubElement(f, f"{{{SVG_NS}}}feComposite", {"in2": "SourceAlpha", "operator": "in"})
 
-    if gap_px <= 0:
-        return
+    def wrap(parent, child, attrs):
+        g = ET.Element(f"{{{SVG_NS}}}g", attrs)
+        parent.insert(list(parent).index(child), g)
+        parent.remove(child)
+        g.append(child)
+
+    def visit(el):
+        for child in list(el):
+            tag = child.tag.rsplit("}", 1)[-1]
+            if id(child) in number:
+                wrap(el, child, {"filter": f"url(#albik_index_{number[id(child)]})"})
+            elif id(child) in ancestors:
+                visit(child)
+            elif tag in DRAWABLE:
+                wrap(el, child, {"style": "display:none"})
+
+    visit(root)
+
+
+def compute_masks(objects: list, index: np.ndarray, gap_px: float) -> None:
+    """Object masks from the index map, then a gap: every object keeps half of the gap away from the others."""
     half = gap_px / 2
-    originals = [o.mask.copy() for o in objects]
-    for i, obj in enumerate(objects):
-        others = np.zeros(shape, dtype=bool)
-        for j, m in enumerate(originals):
-            if j != i:
-                others |= m
-        if not others.any() or not obj.mask.any():
+    pad = int(np.ceil(half)) + 1
+    for k, (obj, box) in enumerate(zip(objects, ndimage.find_objects(index, len(objects))), 1):
+        obj.mask = index == k
+        if box is None or gap_px <= 0:
             continue
-        ys, xs = np.nonzero(obj.mask)
-        pad = int(np.ceil(half)) + 1
-        y0, y1 = max(ys.min() - pad, 0), min(ys.max() + pad + 1, shape[0])
-        x0, x1 = max(xs.min() - pad, 0), min(xs.max() + pad + 1, shape[1])
-        window = others[y0:y1, x0:x1]
-        if not window.any():
-            continue
-        near = ndimage.distance_transform_edt(~window) <= half
-        obj.mask[y0:y1, x0:x1] &= ~near
-
-
-def element_order(root: ET.Element, objects: list) -> list:
-    wanted = {eid for obj in objects for eid in obj.elements}
-    return [el.get("id") for el in root.iter() if el.get("id") in wanted]
+        window = tuple(slice(max(s.start - pad, 0), s.stop + pad) for s in box)
+        others = (index[window] > 0) & (index[window] != k)
+        if others.any():
+            obj.mask[window] &= ndimage.distance_transform_edt(~others) > half
 
 
 def run(svg_path: Path, out_dir: Path, mask_dpi: int = MASK_DPI, gap_mm: float = GAP_MM,
@@ -237,16 +250,15 @@ def run(svg_path: Path, out_dir: Path, mask_dpi: int = MASK_DPI, gap_mm: float =
 
     with tempfile.TemporaryDirectory() as tmp:
         tmp = Path(tmp)
-        #work on a copy with ids added to labelled elements that had none
-        svg_copy = tmp / "scene.svg"
-        tree.write(svg_copy, encoding="utf-8", xml_declaration=True)
-        ids = element_order(root, objects)
-        page_png, files = export_pngs(svg_copy, ids, tmp, mask_dpi)
-        page_rgb = np.array(Image.open(page_png).convert("RGB"))
-        element_masks = {eid: np.array(Image.open(f).convert("RGBA"))[:, :, 3] > 127 for eid, f in zip(ids, files)}
+        page_rgb = render_png(svg_path, tmp / "page.png", mask_dpi,
+                              ["export-background:white", "export-background-opacity:1"])[:, :, :3]
+        paint_index_map(root, objects)
+        tree.write(tmp / "index.svg", encoding="utf-8", xml_declaration=True)
+        index = decode_index(render_png(tmp / "index.svg", tmp / "index.png", mask_dpi,
+                                        ["export-background-opacity:0", "export-png-antialias:0"]))
 
     px_per_mm = mask_dpi / 25.4
-    compute_masks(objects, element_masks, gap_mm * px_per_mm)
+    compute_masks(objects, index, gap_mm * px_per_mm)
 
     rgb = page_rgb.astype(np.float32)
     luminance = 0.299 * rgb[:, :, 0] + 0.587 * rgb[:, :, 1] + 0.114 * rgb[:, :, 2]
