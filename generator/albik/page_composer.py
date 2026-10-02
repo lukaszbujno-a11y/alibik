@@ -10,7 +10,6 @@ Usage:
 from __future__ import annotations
 
 import argparse
-import subprocess
 import sys
 import tempfile
 from pathlib import Path
@@ -21,7 +20,8 @@ import yaml
 from PIL import Image, ImageDraw, ImageFont
 
 from albik import oid, oid_map
-from albik.svg_import import PREVIEW_FONTS, inkscape_binary
+from albik.inkscape import InkscapeError, render_png
+from albik.svg_import import PREVIEW_FONTS
 
 #artwork under codes keeps only this fraction of its darkness (same as test/my-book/make_page.pl)
 LIGHTEN = 0.4
@@ -39,14 +39,33 @@ class ComposeError(Exception):
     pass
 
 
-def render_artwork(svg: Path, dpi: int, tmp: Path) -> Image.Image:
-    out = tmp / "art.png"
-    actions = ["export-type:png", f"export-dpi:{dpi}", "export-area-page", "export-background:white",
-               "export-background-opacity:1", "export-png-color-mode:RGB_8", f"export-filename:{out}", "export-do"]
-    r = subprocess.run([inkscape_binary(), str(svg), "--actions=" + ";".join(actions)], capture_output=True, text=True)
-    if r.returncode != 0 or not out.exists():
-        raise ComposeError("Inkscape export failed:\n" + r.stderr)
-    return Image.open(out).convert("RGB")
+def compose(svg: Path, objects_yaml: Path, out_pdf: Path, oid_map_path: Path, book_id: int = None,
+            dpi: int = 1200, lighten: float = LIGHTEN, ruler: bool = True, png: Path = None) -> dict:
+    if dpi not in oid.DPI_VALUES:
+        raise ComposeError(f"dpi must be one of {oid.DPI_VALUES}")
+    areas, page_info = load_areas(objects_yaml, oid_map_path, book_id)
+    names, codes, masks = zip(*areas)
+    mask_dpi = page_info["mask_dpi"]
+
+    art = render_artwork(svg, dpi)
+    ruler_box = draw_ruler(art, dpi) if ruler else None
+    page = np.array(art)
+    del art
+    h, w = page.shape[:2]
+
+    index = index_map(masks)
+    print_codes(page, index, codes, mask_dpi, dpi, lighten)
+    warnings = ruler_warnings(index, names, ruler_box, mask_dpi, dpi) if ruler_box else []
+    preview = write_outputs(page, out_pdf, dpi, png)
+
+    return {
+        "pdf": out_pdf,
+        "preview": preview,
+        "size_px": (w, h),
+        "size_mm": (round(w / dpi * 25.4, 2), round(h / dpi * 25.4, 2)),
+        "codes": list(zip(names, codes)),
+        "warnings": warnings,
+    }
 
 
 def load_areas(objects_yaml: Path, oid_map_path: Path, book_id: int) -> tuple:
@@ -59,7 +78,14 @@ def load_areas(objects_yaml: Path, oid_map_path: Path, book_id: int) -> tuple:
         areas.append((o["label"], codes[o["id"]], base / o["mask"]))
     for b in data["buttons"]:
         areas.append(("@" + b["id"], oid_map.button_code(b["id"], book_id), base / b["mask"]))
+    if not areas:
+        raise ComposeError(f"{objects_yaml} has no objects")
     return [(name, code, np.array(Image.open(mask)) > 0) for name, code, mask in areas], data["page"]
+
+
+def render_artwork(svg: Path, dpi: int) -> Image.Image:
+    with tempfile.TemporaryDirectory() as tmp:
+        return render_png(svg, Path(tmp) / "art.png", dpi, background="white").convert("RGB")
 
 
 def draw_ruler(img: Image.Image, dpi: int) -> tuple:
@@ -82,49 +108,47 @@ def draw_ruler(img: Image.Image, dpi: int) -> tuple:
     return x0, int(y - 3 * px), x1 + int(20 * px), int(y + width)
 
 
-def compose(svg: Path, objects_yaml: Path, out_pdf: Path, oid_map_path: Path, book_id: int = None,
-            dpi: int = 1200, lighten: float = LIGHTEN, ruler: bool = True, png: Path = None) -> dict:
-    if dpi not in oid.DPI_VALUES:
-        raise ComposeError(f"dpi must be one of {oid.DPI_VALUES}")
-    areas, page_info = load_areas(objects_yaml, oid_map_path, book_id)
-    with tempfile.TemporaryDirectory() as tmp:
-        art = render_artwork(svg, dpi, Path(tmp))
-    ruler_box = draw_ruler(art, dpi) if ruler else None
-    page = np.array(art)
-    del art
+def index_map(masks: list) -> np.ndarray:
+    """One map instead of many masks: k where the k-th mask covers the pixel (from 1), 0 where none does.
+
+    The masks do not overlap, svg_import keeps a gap between objects.
+    """
+    index = np.zeros(masks[0].shape, dtype=np.uint16)
+    for k, mask in enumerate(masks, 1):
+        index[mask] = k
+    return index
+
+
+def to_mask_px(px: np.ndarray, dpi: int, mask_dpi: int, mask_size: int) -> np.ndarray:
+    """Page pixel numbers -> numbers of the mask pixels under them (nearest, never interpolated)."""
+    return np.minimum(px * mask_dpi // dpi, mask_size - 1)
+
+
+def print_codes(page: np.ndarray, index: np.ndarray, codes: list, mask_dpi: int, dpi: int, lighten: float) -> None:
+    """Lightens the artwork under the objects and prints their codes over it, in strips to keep memory low."""
     h, w = page.shape[:2]
-    warnings = []
-
-    #art pixel -> mask pixel (masks have a lower resolution, nearest neighbour without interpolation)
-    mask_dpi = page_info["mask_dpi"]
-    mh, mw = areas[0][2].shape if areas else (0, 0)
-    mx = np.minimum(np.arange(w) * mask_dpi // dpi, mw - 1)
     lut = np.array([int(255 - (255 - v) * lighten + 0.5) for v in range(256)], dtype=np.uint8)
-
+    cols = to_mask_px(np.arange(w), dpi, mask_dpi, index.shape[1])
     for y0 in range(0, h, STRIP_ROWS):
-        y1 = min(y0 + STRIP_ROWS, h)
-        my = np.minimum(np.arange(y0, y1) * mask_dpi // dpi, mh - 1)
-        strip = page[y0:y1]
-        coded = np.zeros((y1 - y0, w), dtype=bool)
-        dots = np.zeros((y1 - y0, w), dtype=bool)
-        for _, code, mask in areas:
-            m = mask[np.ix_(my, mx)]
-            if not m.any():
-                continue
-            coded |= m
-            dots |= m & oid.fill(code, w, y1 - y0, dpi, origin=(0, y0))
+        rows = to_mask_px(np.arange(y0, min(y0 + STRIP_ROWS, h)), dpi, mask_dpi, index.shape[0])
+        strip = page[y0:y0 + len(rows)]
+        strip_index = index[np.ix_(rows, cols)]
+        coded = strip_index > 0
         strip[coded] = lut[strip[coded]]
-        strip[dots] = 0
+        strip[oid.fill_index(strip_index, codes, dpi, origin=(0, y0))] = 0
 
-    if ruler_box:
-        x0, ry0, x1, ry1 = ruler_box
-        for name, _, mask in areas:
-            sub = mask[ry0 * mask_dpi // dpi:ry1 * mask_dpi // dpi + 1, x0 * mask_dpi // dpi:x1 * mask_dpi // dpi + 1]
-            if sub.any():
-                warnings.append(f"'{name}' overlaps the calibration ruler at the bottom of the page")
 
+def ruler_warnings(index: np.ndarray, names: list, ruler_box: tuple, mask_dpi: int, dpi: int) -> list:
+    x0, y0, x1, y1 = ruler_box
+    rows = to_mask_px(np.arange(y0, y1 + 1), dpi, mask_dpi, index.shape[0])
+    cols = to_mask_px(np.arange(x0, x1 + 1), dpi, mask_dpi, index.shape[1])
+    under_ruler = np.unique(index[np.ix_(rows, cols)])
+    return [f"'{names[k - 1]}' overlaps the calibration ruler at the bottom of the page" for k in under_ruler if k]
+
+
+def write_outputs(page: np.ndarray, out_pdf: Path, dpi: int, png: Path = None) -> Path:
+    """Writes the PDF, a small preview PNG next to it and optionally the full page PNG; returns the preview."""
     img = Image.fromarray(page)
-    del page
     out_pdf.parent.mkdir(parents=True, exist_ok=True)
     preview = out_pdf.with_name(out_pdf.stem + "_preview.png")
     img.reduce(dpi // PREVIEW_DPI).save(preview)
@@ -134,15 +158,7 @@ def compose(svg: Path, objects_yaml: Path, out_pdf: Path, oid_map_path: Path, bo
         del img
         #without a layout the PDF page has exactly the size of the image at its dpi, nothing is scaled
         out_pdf.write_bytes(img2pdf.convert(str(page_png)))
-
-    return {
-        "pdf": out_pdf,
-        "preview": preview,
-        "size_px": (w, h),
-        "size_mm": (round(w / dpi * 25.4, 2), round(h / dpi * 25.4, 2)),
-        "codes": [(name, code) for name, code, _ in areas],
-        "warnings": warnings,
-    }
+    return preview
 
 
 def main(argv=None):
@@ -161,7 +177,7 @@ def main(argv=None):
     try:
         r = compose(a.svg, a.objects, a.output, a.oid_map or a.objects.with_name("oid_map.yaml"), a.book_id,
                     a.dpi, a.lighten, not a.no_ruler, a.png)
-    except (ComposeError, oid_map.OidMapError) as e:
+    except (ComposeError, oid_map.OidMapError, InkscapeError) as e:
         sys.exit(f"error: {e}")
     print(f"written {r['pdf']} ({r['size_px'][0]} x {r['size_px'][1]} px, {r['size_mm'][0]} x {r['size_mm'][1]} mm, "
           f"{a.dpi} dpi)")

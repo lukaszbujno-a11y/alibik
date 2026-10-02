@@ -79,6 +79,21 @@ def fill(code: int, width: int, height: int, dpi: int = 1200, origin: tuple = (0
     return t[np.ix_(ys, xs)]
 
 
+def fill_index(index: np.ndarray, codes: list, dpi: int = 1200, origin: tuple = (0, 0)) -> np.ndarray:
+    """Covers several areas at once, each with its own code, as a boolean array [y, x].
+
+    index[y, x] = k marks a pixel of the area with codes[k - 1], 0 a pixel without a code. Inside every area
+    the result is the same as fill() of its code: one tile grid anchored at the page origin.
+    """
+    no_code = np.zeros((TILE_PX_600 * dpi // 600,) * 2, dtype=bool)
+    tiles = np.stack([no_code] + [tile(code, dpi) for code in codes])
+    size = tiles.shape[1]
+    ys = (np.arange(index.shape[0]) + origin[1]) % size
+    xs = (np.arange(index.shape[1]) + origin[0]) % size
+    #for every pixel: the tile of its area, at the pixel's position in the grid
+    return tiles[index, ys[:, None], xs[None, :]]
+
+
 def mm_to_px(mm: float, dpi: int) -> int:
     """Same rounding as the Perl generator."""
     return int(mm / 25.4 * dpi)

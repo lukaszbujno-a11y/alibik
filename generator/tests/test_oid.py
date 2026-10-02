@@ -50,6 +50,19 @@ def test_fill_is_anchored_at_page_origin():
     assert np.array_equal(area, page[81:131, 37:137])
 
 
+@pytest.mark.parametrize("dpi", oid.DPI_VALUES)
+def test_fill_index_is_fill_of_each_area(dpi):
+    index = np.zeros((120, 200), dtype=np.uint16)
+    index[10:60, 20:90] = 1
+    index[30:110, 100:190] = 2
+    origin = (37, 81)
+    dots = oid.fill_index(index, [10000, 8000], dpi, origin)
+    for k, code in enumerate([10000, 8000], 1):
+        area = index == k
+        assert np.array_equal(dots[area], oid.fill(code, 200, 120, dpi, origin)[area])
+    assert not dots[index == 0].any()
+
+
 @needs_perl
 @pytest.mark.parametrize("code,dpi,size_x,size_y", [
     (10000, 1200, 20, 20),

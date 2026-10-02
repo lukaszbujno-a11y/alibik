@@ -19,10 +19,8 @@ Usage:
 from __future__ import annotations
 
 import argparse
-import os
 import re
 import shutil
-import subprocess
 import sys
 import tempfile
 import unicodedata
@@ -35,6 +33,7 @@ import yaml
 from PIL import Image, ImageDraw, ImageFont
 from scipy import ndimage
 
+from albik.inkscape import InkscapeError, render_png
 from albik.oid_map import BUTTON_CODES
 
 SVG_NS = "http://www.w3.org/2000/svg"
@@ -140,24 +139,6 @@ def find_objects(root: ET.Element) -> list:
     return list(objects.values())
 
 
-def inkscape_binary() -> str:
-    exe = os.environ.get("INKSCAPE") or shutil.which("inkscape")
-    if not exe and Path("/Applications/Inkscape.app/Contents/MacOS/inkscape").exists():
-        exe = "/Applications/Inkscape.app/Contents/MacOS/inkscape"
-    if not exe:
-        raise SvgImportError("Inkscape not found; install it or set INKSCAPE to its binary")
-    return exe
-
-
-def render_png(svg: Path, out: Path, dpi: int, actions: list) -> np.ndarray:
-    actions = ["export-type:png", f"export-dpi:{dpi}", "export-area-page", *actions,
-               f"export-filename:{out}", "export-do"]
-    r = subprocess.run([inkscape_binary(), str(svg), "--actions=" + ";".join(actions)], capture_output=True, text=True)
-    if r.returncode != 0 or not out.exists():
-        raise SvgImportError("Inkscape export failed:\n" + r.stderr)
-    return np.array(Image.open(out).convert("RGBA"))
-
-
 def index_color(k: int) -> tuple:
     """Object number k (from 1) -> a flat colour; channels step by 16, so small rendering errors still decode."""
     return tuple(16 * ((k >> shift) & 15) + 8 for shift in (0, 4, 8))
@@ -250,12 +231,11 @@ def run(svg_path: Path, out_dir: Path, mask_dpi: int = MASK_DPI, gap_mm: float =
 
     with tempfile.TemporaryDirectory() as tmp:
         tmp = Path(tmp)
-        page_rgb = render_png(svg_path, tmp / "page.png", mask_dpi,
-                              ["export-background:white", "export-background-opacity:1"])[:, :, :3]
+        page_rgb = np.array(render_png(svg_path, tmp / "page.png", mask_dpi, background="white").convert("RGB"))
         paint_index_map(root, objects)
         tree.write(tmp / "index.svg", encoding="utf-8", xml_declaration=True)
-        index = decode_index(render_png(tmp / "index.svg", tmp / "index.png", mask_dpi,
-                                        ["export-background-opacity:0", "export-png-antialias:0"]))
+        index_rgba = render_png(tmp / "index.svg", tmp / "index.png", mask_dpi, antialias=False).convert("RGBA")
+        index = decode_index(np.array(index_rgba))
 
     px_per_mm = mask_dpi / 25.4
     compute_masks(objects, index, gap_mm * px_per_mm)
@@ -339,7 +319,7 @@ def main(argv=None):
     a = p.parse_args(argv)
     try:
         result = run(a.svg, a.output, a.mask_dpi, a.gap, a.min_size)
-    except SvgImportError as e:
+    except (SvgImportError, InkscapeError) as e:
         sys.exit(f"error: {e}")
     print(f"{len(result['objects'])} objects, {len(result['buttons'])} buttons -> {a.output / 'objects.yaml'}")
     for n, o in enumerate(result["objects"] + result["buttons"], 1):
